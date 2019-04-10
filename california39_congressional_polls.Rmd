@@ -1,0 +1,86 @@
+---
+title: "California Congressional Polls"
+subtitle: "California's 39th District"
+author: "Christopher Milne"
+date: "4/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gt)
+library(stringr)
+library(janitor)
+library(readr)
+library(lubridate)
+library(knitr)
+
+#This loads the packages needed for all the rest of the code.
+
+ q5 <- read.csv("elections-poll-ca39-3.csv")
+ 
+#This reads in the data for the graphic and stores it as an object for easy use later.
+```
+
+```{r ca39, echo= FALSE}
+p <- q5 %>% 
+#This means that all of the following manipulations of the stored data will be stored as an object to be called later.
+  select(response, ager, gender, final_weight) %>% 
+#The variables that will be used in creating the graphic are isolated.
+  filter(ager != "[DO NOT READ] Refused") %>%
+#Since the graphic will look at different age groups, it will not be meaningful to consider data for people without a known age group so they are removed.
+  group_by(ager,response, gender) %>% 
+#The data is grouped by the three variables that the graphics will consider so that we can see all possbile combinations of the three.
+  summarize(weight = sum(final_weight)) %>% 
+#For each combination of the grouped variables, this indicates the weight of all the respondants who fell in that combination.
+  spread(key = response, value = weight, fill = 0) %>% 
+#The data is spread by response so each response option becomes its own column. The spread is done by the response variable because it will become the x axis variable in the graphic.
+  mutate(all =Dem+Rep+Und) %>% 
+#This creates a new column that represents the weighted sum of the voters that fall in particular combination of gender and age group. This column will be used to turn the weighted sums into weighted proportions.
+  mutate(Democrat = round(100*Dem/all, digits = 0)) %>% 
+  mutate(Republican = round(100*Rep/all, digits = 0)) %>% 
+  mutate(Undecided = round(100*Und/all, digits = 0)) %>% 
+#The above commmands turn the weighted sums of the voting power of the individuals in a particular gender and age combination into weighted proportions. Thes weighted proportions indicate the proportion of a particular age, gender combination that voted for each of the response options.
+  select(ager, gender, Democrat, Republican, Undecided) %>% 
+#The relevant variables are isolated. (Variables like Dem, Rep, Und, and all were only necessary to create the weighted proportions that will be used in the graphic.)
+  gather(key=Party, value = Proportion, Democrat, Republican, Undecided) %>% 
+#The response options are gathered back into a single column under the name "Party" and the Proportion variable expresses the proportions generated above for each conbination of the three relevant variables: gender, ager, and party.
+  ungroup() %>% 
+#The data is ungrouped so it will behave as desired.
+  mutate(ager = recode(ager, "18 to 34" = "18 to 34 years old", 
+                       "35 to 49"="39 to 49 years old", 
+                       "50 to 64" = "50 to 64 years old", 
+                       "65 and older"="65 years old and older"))
+#This renames the levels of the ager factor so that when the levels are shown in the graphic it will be more obvious that the numbers are refering to ages.
+  
+p %>% 
+ggplot(aes(x=Party, y=Proportion, fill = Party))+
+#This call the data that was just manipulated and creates a plot with Party (i.e. response) on the x axis, weighted proportion on the y axis, and the fill color representing party to make the graph look better.
+  geom_col()+
+#The graph is made with geom_col because the x variable is categorical and we want to chose the y variable as a variable we created.
+  facet_grid(gender~ager)+
+#By faceting by gender and age, we will get a plot for each possible combination of age and gender.
+  expand_limits(y = 100)+
+#Since the proportions are out of 100%, the y axis is expanded to 100% for reference.
+  labs(title = "Weighted Proportion of Voters Favoring each Party
+       by Age Group and by Gender",
+       subtitle = "California's 39th Congressional Distrinct",
+       caption = "Source: NYT Upshot / Siena College Poll")+ 
+#A title is given describing the information being conveyed in the plot. The subtitle indicates the district that the data comes from and the caption indicates the data's source.
+  xlab("Favored Party")+
+  ylab("Weighted Proportion (in %)")+
+#The x and y axis labels are changes from the default to be more descriptive.
+  theme_bw()+
+#This makes the graph look cleaner by making the background white.
+  theme(panel.grid.major.x = element_blank())+
+#The unnecessary vertical guidelines are removed to make the graph cleaner.
+  theme(plot.title = element_text(hjust = .5))+
+#This centers the title for a better aesthetic.
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+#The x-axis favored party labels are adjusted so they don't overlap the graph with hjust. They are turned 45 sideways so that they do not overlap each other, yet are easy to read.
+  theme(legend.position = "none")+
+#Since the colors indicate party which are already clear from the x-axis labels, the legend is ommited to avoid unnecessary clutttering.
+  scale_fill_manual(values = c("skyblue", "tomato", "green"))
+#The colors for the columns of the different party preferences are set manually so that they would be more logical. This makes the Democrat column blue and the Republican column red.
+```
