@@ -1,1 +1,2 @@
-# California_Congressional_Polls
+# California Congressional Polls
+This repositiory produces a graph looking at which party was favored by different age and gender demographics of voters in California's 39th congressional district before the 2018 congressional election using polling data from the New York Times/Sierra College Polls. (This data set can be found in the repositiory.) A published version of HTML produced can be founded [here](http://rpubs.com/christophermilne/california_congressional_polls).
